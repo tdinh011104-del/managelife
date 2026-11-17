@@ -624,12 +624,16 @@ function initStore(){
   const auth=firebase.auth(),db=firebase.firestore();
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
   const provider=new firebase.auth.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});
+  const inApp=/Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger|MicroMessenger|TikTok|; wv\)/i.test(navigator.userAgent);
+  if(inApp){$('#lMsg').innerHTML='⚠️ Bạn đang mở trong trình duyệt của ứng dụng (Zalo, Messenger...). Google không cho đăng nhập ở đây.<br><b>Bấm ⋯ ở góc trên → "Mở bằng trình duyệt"</b> (Chrome/Safari).<br><button class="btn sm" id="cpLink" style="margin-top:8px">📋 Sao chép link</button>';
+    const c=$('#cpLink');if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(location.href);c.textContent='✓ Đã sao chép, dán vào Chrome/Safari'}catch(e){c.textContent=location.href}}}
   $('#gLogin').onclick=async()=>{$('#lMsg').textContent='Đang mở cửa sổ đăng nhập...';
-    try{await auth.signInWithPopup(provider)}catch(e){
-      if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'||e.code==='auth/cancelled-popup-request')){auth.signInWithRedirect(provider)}
-      else if(e&&e.code==='auth/popup-closed-by-user'){$('#lMsg').textContent=''}
-      else{$('#lMsg').textContent='Không đăng nhập được: '+(e&&e.code||e)}}};
-  auth.getRedirectResult().catch(e=>{$('#lMsg').textContent='Không đăng nhập được: '+(e&&e.code||e)});
+    try{await auth.signInWithPopup(provider)}catch(e){const c=e&&e.code||String(e);
+      if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'){$('#lMsg').textContent=''}
+      else if(c==='auth/popup-blocked'){$('#lMsg').innerHTML='Trình duyệt đã chặn cửa sổ đăng nhập. Hãy cho phép pop-up cho trang này rồi bấm lại.'}
+      else if(c==='auth/unauthorized-domain'){$('#lMsg').textContent='Tên miền này chưa được thêm trong Firebase (Authorized domains).'}
+      else if(c==='auth/operation-not-supported-in-this-environment'||c==='auth/web-storage-unsupported'){$('#lMsg').innerHTML='Trình duyệt này không hỗ trợ đăng nhập. Hãy mở link bằng <b>Chrome</b> hoặc <b>Safari</b> (tắt chế độ ẩn danh).'}
+      else{$('#lMsg').textContent='Không đăng nhập được: '+c}}};
   window.renderAcct=()=>{const u=fbUser;$('#acctBox').innerHTML=u?'<div class="fld"><label>👤 Tài khoản</label><div class="acct">'+(u.photoURL?'<img src="'+esc(u.photoURL)+'" alt="" referrerpolicy="no-referrer">':'')+'<span class="em">'+esc(u.displayName||'')+'<br><span class="muted">'+esc(u.email||'')+'</span></span><button class="btn sm" id="logout" type="button">Đăng xuất</button></div></div>':'';
     const lo=$('#logout');if(lo)lo.onclick=()=>{closeS();auth.signOut()}};
   auth.onAuthStateChanged(u=>{
